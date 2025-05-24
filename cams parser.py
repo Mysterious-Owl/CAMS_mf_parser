@@ -6,12 +6,24 @@ import numpy as np
 
 
 def file_processing(file_path, doc_pwd, txt_file):
+    """
+    Processes a password-protected PDF file, extracts its text content, and writes it to a text file.
+
+    Args:
+        file_path (str): The path to the PDF file to be processed.
+        doc_pwd (str): The password for the PDF file.
+        txt_file (str): The path to the output text file where the extracted text will be saved.
+
+    Returns:
+        str: The complete extracted text from the PDF file.
+    """
     final_text = ""
     with pdfplumber.open(file_path, password=doc_pwd) as pdf:
+        text_list = []
         for i in range(len(pdf.pages)):
             txt = pdf.pages[i].extract_text()
-            final_text = final_text + "\n" + txt
-        pdf.close()
+            text_list.append(txt)
+        final_text = "\n".join(text_list)
     with open(txt_file, 'w') as f:
         f.write(final_text)
     return final_text
@@ -115,7 +127,13 @@ def formatter(df):
         '.*aditya.*': 'Aditya Birla',
         '.*parag.*': 'Parag Parikh',
         '.*uti.*': 'UTI',
+        '.*motilal.*': 'Motilal Oswal',
     }
+    advisor_mapper = {
+        'INZ000240532': 'Paytm Money',
+        'INZ000006031': 'Dhan'
+    }
+
     clean_txt(df.Amount)
     clean_txt(df.Units)
     clean_txt(df.Price)
@@ -136,20 +154,21 @@ def formatter(df):
     df['Folio No'] = df['Folio'].str.extract(r'Folio No: (\d*) ')
     df['ISIN'] = df['Fund_name'].str.extract(r'ISIN[ :]+(\w+)[( ]')
     df['Advisor'] = df['Fund_name'].str.extract(r'Advisor[ :]+(\w+)[( )]')
-    df.loc[df['Advisor'].str.lower() == 'registrar', 'Advisor'] = np.NAN
+    df.loc[df['Advisor'].str.lower() == 'registrar', 'Advisor'] = np.nan
     df['AMC'] = df.Fund_name.str.lower().replace(amc_mapper, regex=True)
+    df['Advisor Name'] = df.Advisor.replace(advisor_mapper)
 
     df.drop(['Folio', 'Fund_name'], axis=1, inplace=True)
     df = df[['Name', 'Date', 'Amount', 'Units', 'Price', 'Unit_balance', 'Investment Type', 'Fund Type',
-             'Investment Channel', 'Folio No', 'ISIN', 'Advisor', 'AMC', 'Remarks']]
+             'Investment Channel', 'Folio No', 'ISIN', 'Advisor', 'Advisor Name', 'AMC', 'Remarks']]
 
     return df
 
 
-cams = r"C:/Users/.pdf"
-cams_pwd = "pass"
-cams_txt = r"C:/Users/.txt"
-cams_csv = r"C:/Users/.csv"
+cams = r"cams_mf.pdf"
+cams_pwd = "your_password_here"
+cams_txt = r"cams_mf.txt"
+cams_csv = r"cams_mf.csv"
 
 file_processing(cams, cams_pwd, cams_txt)
 print("extracted text")
